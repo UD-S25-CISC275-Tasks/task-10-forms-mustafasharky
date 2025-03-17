@@ -1,12 +1,13 @@
 import { Answer } from "./interfaces/answer";
 import { Question, QuestionType } from "./interfaces/question";
+import { duplicateQuestion, makeBlankQuestion } from "./objects";
 
 /**
  * Consumes an array of questions and returns a new array with only the questions
  * that are `published`.
  */
 export function getPublishedQuestions(questions: Question[]): Question[] {
-    return [];
+    return questions.filter((question: Question) => question.published);
 }
 
 /**
@@ -15,7 +16,12 @@ export function getPublishedQuestions(questions: Question[]): Question[] {
  * `expected`, and an empty array for its `options`.
  */
 export function getNonEmptyQuestions(questions: Question[]): Question[] {
-    return [];
+    return questions.filter(
+        (question: Question) =>
+            question.body.length !== 0 ||
+            question.expected.length !== 0 ||
+            question.options.length !== 0,
+    );
 }
 
 /***
@@ -24,9 +30,9 @@ export function getNonEmptyQuestions(questions: Question[]): Question[] {
  */
 export function findQuestion(
     questions: Question[],
-    id: number
+    id: number,
 ): Question | null {
-    return null;
+    return questions.find((question: Question) => question.id == id) || null;
 }
 
 /**
@@ -34,7 +40,7 @@ export function findQuestion(
  * with the given `id`.
  */
 export function removeQuestion(questions: Question[], id: number): Question[] {
-    return [];
+    return questions.filter((question: Question) => question.id != id);
 }
 
 /***
@@ -42,21 +48,37 @@ export function removeQuestion(questions: Question[], id: number): Question[] {
  * questions, as an array.
  */
 export function getNames(questions: Question[]): string[] {
-    return [];
+    let names: string[] = [];
+
+    questions.forEach(
+        (question: Question) => (names = [...names, question.name]),
+    );
+    return names;
 }
 
 /***
  * Consumes an array of questions and returns the sum total of all their points added together.
  */
 export function sumPoints(questions: Question[]): number {
-    return 0;
+    let total: number = 0;
+
+    questions.forEach((question: Question) => (total += question.points));
+    return total;
 }
 
 /***
  * Consumes an array of questions and returns the sum total of the PUBLISHED questions.
  */
 export function sumPublishedPoints(questions: Question[]): number {
-    return 0;
+    let total: number = 0;
+
+    questions.forEach((question: Question) => {
+        if (question.published) {
+            total += question.points;
+        }
+    });
+
+    return total;
 }
 
 /***
@@ -77,7 +99,23 @@ id,name,options,points,published
  * Check the unit tests for more examples!
  */
 export function toCSV(questions: Question[]): string {
-    return "";
+    let csv: string = "id,name,options,points,published";
+
+    questions.forEach((question: Question) => {
+        csv +=
+            "\n" +
+            String(question.id) +
+            "," +
+            question.name +
+            "," +
+            question.options.length +
+            "," +
+            question.points +
+            "," +
+            String(question.published);
+    });
+
+    return csv;
 }
 
 /**
@@ -86,7 +124,21 @@ export function toCSV(questions: Question[]): string {
  * making the `text` an empty string, and using false for both `submitted` and `correct`.
  */
 export function makeAnswers(questions: Question[]): Answer[] {
-    return [];
+    let answers: Answer[] = [];
+
+    questions.forEach((question: Question) => {
+        answers = [
+            ...answers,
+            {
+                questionId: question.id,
+                text: "",
+                submitted: false,
+                correct: false,
+            },
+        ];
+    });
+
+    return answers;
 }
 
 /***
@@ -94,7 +146,9 @@ export function makeAnswers(questions: Question[]): Answer[] {
  * each question is now published, regardless of its previous published status.
  */
 export function publishAll(questions: Question[]): Question[] {
-    return [];
+    return questions.map((question: Question) => {
+        return { ...question, published: true };
+    });
 }
 
 /***
@@ -102,7 +156,20 @@ export function publishAll(questions: Question[]): Question[] {
  * are the same type. They can be any type, as long as they are all the SAME type.
  */
 export function sameType(questions: Question[]): boolean {
-    return false;
+    if (questions.length === 0) {
+        return true;
+    }
+
+    let currentType: string = questions[0].type;
+    let isSame: boolean = true;
+
+    questions.forEach((question: Question) => {
+        if (question.type !== currentType && isSame) {
+            isSame = false;
+        }
+    });
+
+    return isSame;
 }
 
 /***
@@ -114,9 +181,9 @@ export function addNewQuestion(
     questions: Question[],
     id: number,
     name: string,
-    type: QuestionType
+    type: QuestionType,
 ): Question[] {
-    return [];
+    return [...questions, makeBlankQuestion(id, name, type)];
 }
 
 /***
@@ -127,9 +194,18 @@ export function addNewQuestion(
 export function renameQuestionById(
     questions: Question[],
     targetId: number,
-    newName: string
+    newName: string,
 ): Question[] {
-    return [];
+    let foundQuestion = questions.findIndex(
+        (question: Question) => question.id === targetId,
+    );
+    let foundQuestionData = questions[foundQuestion];
+    let firstHalf = questions.slice(0, foundQuestion);
+    firstHalf = [...firstHalf, { ...foundQuestionData, name: newName }];
+
+    let secondHalf = questions.slice(foundQuestion + 1);
+    firstHalf = [...firstHalf, ...secondHalf];
+    return firstHalf;
 }
 
 /***
@@ -142,9 +218,31 @@ export function renameQuestionById(
 export function changeQuestionTypeById(
     questions: Question[],
     targetId: number,
-    newQuestionType: QuestionType
+    newQuestionType: QuestionType,
 ): Question[] {
-    return [];
+    let foundQuestion = questions.findIndex(
+        (question: Question) => question.id === targetId,
+    );
+    let foundQuestionData = questions[foundQuestion];
+    let firstHalf = questions.slice(0, foundQuestion);
+    if (
+        foundQuestionData.type === "multiple_choice_question" &&
+        foundQuestionData.type !== newQuestionType
+    ) {
+        firstHalf = [
+            ...firstHalf,
+            { ...foundQuestionData, type: newQuestionType, options: [] },
+        ];
+    } else {
+        firstHalf = [
+            ...firstHalf,
+            { ...foundQuestionData, type: newQuestionType },
+        ];
+    }
+
+    let secondHalf = questions.slice(foundQuestion + 1);
+    firstHalf = [...firstHalf, ...secondHalf];
+    return firstHalf;
 }
 
 /**
@@ -161,9 +259,32 @@ export function editOption(
     questions: Question[],
     targetId: number,
     targetOptionIndex: number,
-    newOption: string
-) {
-    return [];
+    newOption: string,
+): Question[] {
+    let foundQuestion = questions.findIndex(
+        (question: Question) => question.id === targetId,
+    );
+    let foundQuestionData = questions[foundQuestion];
+    let firstHalf = questions.slice(0, foundQuestion);
+    if (targetOptionIndex == -1) {
+        firstHalf = [
+            ...firstHalf,
+            {
+                ...foundQuestionData,
+                options: [...foundQuestionData.options, newOption],
+            },
+        ];
+    } else {
+        firstHalf = [
+            ...firstHalf,
+            { ...foundQuestionData, options: [...foundQuestionData.options] },
+        ];
+        firstHalf[foundQuestion].options[targetOptionIndex] = newOption;
+    }
+
+    let secondHalf = questions.slice(foundQuestion + 1);
+    firstHalf = [...firstHalf, ...secondHalf];
+    return firstHalf;
 }
 
 /***
@@ -175,7 +296,20 @@ export function editOption(
 export function duplicateQuestionInArray(
     questions: Question[],
     targetId: number,
-    newId: number
+    newId: number,
 ): Question[] {
-    return [];
+    let foundQuestion = questions.findIndex(
+        (question: Question) => question.id === targetId,
+    );
+    let foundQuestionData = questions[foundQuestion];
+    let firstHalf = questions.slice(0, foundQuestion);
+    firstHalf = [
+        ...firstHalf,
+        { ...foundQuestionData },
+        duplicateQuestion(newId, foundQuestionData),
+    ];
+
+    let secondHalf = questions.slice(foundQuestion + 1);
+    firstHalf = [...firstHalf, ...secondHalf];
+    return firstHalf;
 }

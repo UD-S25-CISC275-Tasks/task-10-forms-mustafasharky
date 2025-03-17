@@ -1,4 +1,11 @@
 import React, { useState } from "react";
+import {
+    Form,
+    FormCheck,
+    FormControl,
+    FormGroup,
+    FormLabel,
+} from "react-bootstrap";
 
 export function EditMode(): React.JSX.Element {
     const [isEditMode, setIsEditMode] = useState(false);
@@ -7,37 +14,41 @@ export function EditMode(): React.JSX.Element {
 
     return (
         <div>
-            <h3>Edit Mode</h3>
-            <label>
-                <input
-                    type="checkbox"
+            <Form>
+                <FormCheck
+                    type="switch"
+                    id="edit-mode-switch"
+                    label="Edit Mode"
                     checked={isEditMode}
                     onChange={() => {
                         setIsEditMode(!isEditMode);
                     }}
                 />
-                Edit Mode
-            </label>
+            </Form>
             {isEditMode ?
-                <div>
-                    <input
-                        type="text"
-                        value={name}
-                        onChange={(e) => {
-                            setName(e.target.value);
-                        }}
-                    />
-                    <label>
-                        <input
+                <Form>
+                    <FormGroup>
+                        <FormLabel>Name:</FormLabel>
+                        <FormControl
+                            type="text"
+                            value={name}
+                            onChange={(e) => {
+                                setName(e.target.value);
+                            }}
+                        />
+                    </FormGroup>
+                    <FormGroup>
+                        <FormCheck
                             type="checkbox"
+                            id="student-checkbox"
+                            label="Student"
                             checked={isStudent}
                             onChange={() => {
                                 setIsStudent(!isStudent);
                             }}
                         />
-                        Student
-                    </label>
-                </div>
+                    </FormGroup>
+                </Form>
             :   <p>
                     {name} is {isStudent ? "a student" : "not a student"}.
                 </p>
